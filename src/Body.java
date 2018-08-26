@@ -1,8 +1,6 @@
 import java.awt.Color;
-import java.util.Arrays;
-import java.util.Comparator;
 
-public class Body implements Comparable<Body>{
+public class Body extends Thread implements Comparable<Body> {
 	private static final double G = 6.673e-11; // gravitational constant
 	private static final double solarmass = 1.98892e30;
 	
@@ -97,27 +95,23 @@ public class Body implements Comparable<Body>{
 					this.radius = collision.radius;
 					
 					bodies[i] = null;
+
+					for (int j = 0; j < N; j++) {
+						if (bodies[j] == null) {
+							for (int k = j + 1; k < N; k++) {
+								bodies[k - 1] = bodies[k];
+							}
+							bodies[N - 1] = null;
+							break;
+						}
+					}
 					
 					N--;
+					i--;
 				}
 			}
 		}
-		
-		Arrays.sort(bodies, new Comparator<Body>() {
-	        @Override
-	        public int compare(Body o1, Body o2) {
-	            if (o1 == null && o2 == null) {
-	                return 0;
-	            }
-	            if (o1 == null) {
-	                return 1;
-	            }
-	            if (o2 == null) {
-	                return -1;
-	            }
-	            return 0;
-	        }});
-		
+
 		return N;
 	}
 	

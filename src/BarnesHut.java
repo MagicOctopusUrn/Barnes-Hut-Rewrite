@@ -34,7 +34,7 @@ public class BarnesHut extends JFrame implements ActionListener {
 	public int N = 100;
 	public Body bodies[] = new Body[10000];
 	public JTextField t1;
-	public JLabel l1,l2;
+	public JLabel l1, l2, l3;
 	public JButton b1;
 	public JButton b2;
 	public JSlider t;
@@ -55,25 +55,27 @@ public class BarnesHut extends JFrame implements ActionListener {
 
 // The first time we call the applet, this function will start
 	public BarnesHut() {
-		startBodies();
 		t1 = new JTextField("100", 5);
 		b2 = new JButton("Restart");
 		b1 = new JButton("Stop");
 		l1 = new JLabel("Number of bodies:");
 		b1.addActionListener(this);
 		b2.addActionListener(this);
-		t = new JSlider(1, 50);
+		t = new JSlider(-1000, 1000);
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.add(l1);
 		buttonPanel.add(t1);
 		buttonPanel.add(b2);
 		buttonPanel.add(b1);
 		buttonPanel.add(t);
+		buttonPanel.add(l3 = new JLabel(""));
 		buttonPanel.add(l2 = new JLabel(""));
 		this.add(buttonPanel, BorderLayout.NORTH);
 
 		this.chartPanel = new ChartPanel(null);
 		this.add(this.chartPanel, BorderLayout.CENTER);
+		
+		startBodies();
 	}
 
 // This method gets called when the applet is terminated. It stops the code
@@ -96,6 +98,7 @@ public class BarnesHut extends JFrame implements ActionListener {
 
 	// Initialize N bodies
 	public void startBodies() {
+		double totalMass = 0.0;
 		double radiusU = 1e18; // radius of universe
 		double solarmass = 1.98892e30;
 		for (int i = 0; i < N; i++) {
@@ -117,8 +120,11 @@ public class BarnesHut extends JFrame implements ActionListener {
 			double mass = (Math.random() * 2.0) * solarmass * 10 + 1e10;
 			double radius = Math.floor(mass * 5 / (2.0 * solarmass * 10 + 1e10));
 			bodies[i] = new Body(px, py, vx, vy, mass, radius);
+			totalMass += mass/solarmass;
 		}
 		bodies[0] = new Body(0, 0, 0, 0, 1e6 * solarmass, 10);// put a heavy body in the center
+		totalMass += 1e6 * solarmass/solarmass;
+		l3.setText("Mass:" + totalMass);
 	}
 
 	// The BH algorithm: calculate the forces
@@ -137,7 +143,7 @@ public class BarnesHut extends JFrame implements ActionListener {
 				if (bodies[i].in(q)) {
 					thetree.updateForce(bodies[i]);
 					// Calculate the new positions on a time step dt (1e11 here)
-					bodies[i].update(10 * 1e11 / t.getValue());
+					bodies[i].update(1e11 * t.getValue() * 1e-3);
 				}
 			}
 		}
@@ -173,7 +179,7 @@ public class BarnesHut extends JFrame implements ActionListener {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
+
 			this.bodies = new Body[10000];
 			shouldrun = true;
 			N = Integer.parseInt(t1.getText());
@@ -194,7 +200,9 @@ public class BarnesHut extends JFrame implements ActionListener {
 			public void run() {
 				int step = 0;
 				while (shouldrun) {
-					chartPanel.setChart(getVelocityChart(bodies));
+					if (N <= 100 || N % 10 == 0)
+						chartPanel.setChart(getVelocityChart(bodies));
+
 					// go through the Barnes-Hut algorithm (see the function below)
 
 					for (int i = 0; i < N; i++) {
@@ -205,16 +213,15 @@ public class BarnesHut extends JFrame implements ActionListener {
 						}
 					}
 
-					/*
-					 * Collision isn't working
-					if (step % 10 == 0) {
-						for (int i = 1; i < N; i++) {
-							if (bodies[i] != null) {
-								N = bodies[i].collide(bodies, N);
-							}
+					double totalMass = 0.0;
+					double solarmass = 1.98892e30;
+					for (int i = 0; i < N; i++) {
+						if (bodies[i] != null) {
+							totalMass += bodies[i].mass/solarmass;
+							N = bodies[i].collide(bodies, N);
 						}
 					}
-					*/
+					l3.setText("Mass:" + totalMass + "RFU's");
 
 					try {
 						Thread.sleep(1000L / 60L);
@@ -222,7 +229,7 @@ public class BarnesHut extends JFrame implements ActionListener {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					l2.setText(""+step++);
+					l2.setText("" + step++);
 				}
 			}
 		};
@@ -268,7 +275,6 @@ public class BarnesHut extends JFrame implements ActionListener {
 
 		NumberAxis nax = (NumberAxis) chart.getXYPlot().getDomainAxis();
 		NumberAxis nay = (NumberAxis) chart.getXYPlot().getRangeAxis();
-
 		nax.setRangeAboutValue(0, 2000);
 		nay.setRangeAboutValue(0, 2000);
 
